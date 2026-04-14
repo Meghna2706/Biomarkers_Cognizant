@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--surface:#111318;--surface2:#191c23;--border:#252830;
+  --accent:#7c6fff;--accent2:#4dffc3;--accent3:#ff6b6b;--accent4:#ffd93d;
+  --text:#e8eaf0;--muted:#6b7280;--dim:#3a3f4a;
+  --font-display:'DM Serif Display',serif;
+  --font-body:'Outfit',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:rgba(10,12,16,0.95);position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:var(--font-display);font-size:20px;color:var(--text);letter-spacing:-0.5px;}
+.nav-logo span{color:var(--accent);}
+.nav-tabs{display:flex;gap:4px;}
+.nav-tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;transition:all 0.2s;}
+.nav-tab.active,.nav-tab:hover{color:var(--text);background:var(--surface2);}
+.nav-tab.active{color:var(--accent);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* PAGES */
+.page{display:none;padding:24px;}
+.page.active{display:block;}
+
+/* OVERVIEW PAGE */
+.overview-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+.metric-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 16px 0 60px;opacity:0.15;}
+.metric-card.hrv::before{background:var(--accent);}
+.metric-card.sleep::before{background:var(--accent2);}
+.metric-card.steps::before{background:var(--accent4);}
+.metric-card.rhr::before{background:var(--accent3);}
+.metric-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
+.metric-val{font-family:var(--font-mono);font-size:32px;font-weight:500;line-height:1;margin-bottom:4px;}
+.metric-unit{font-size:13px;color:var(--muted);}
+.metric-delta{font-size:12px;margin-top:8px;padding:3px 8px;border-radius:20px;display:inline-block;}
+.delta-bad{background:rgba(255,107,107,0.15);color:var(--accent3);}
+.delta-ok{background:rgba(77,255,195,0.15);color:var(--accent2);}
+.delta-warn{background:rgba(255,217,61,0.15);color:var(--accent4);}
+
+/* RISK PANEL */
+.risk-panel{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:24px;}
+.risk-score-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.risk-ring-wrap{position:relative;width:160px;height:160px;margin:0 auto 16px;}
+.risk-ring-wrap canvas{position:absolute;top:0;left:0;}
+.risk-ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.risk-big{font-family:var(--font-mono);font-size:42px;font-weight:500;line-height:1;}
+.risk-tag{font-size:11px;color:var(--muted);margin-top:2px;}
+.risk-status{font-size:15px;font-weight:600;margin-bottom:4px;}
+.risk-advice{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* TREND CHART */
+.trend-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;}
+.card-title{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;}
+.chart-wrap{position:relative;height:140px;}
+
+/* SIGNALS BREAKDOWN */
+.signals-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+.signal-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.signal-row:last-child{margin-bottom:0;}
+.signal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.signal-info{flex:1;}
+.signal-name{font-size:13px;font-weight:500;margin-bottom:3px;}
+.signal-bar-bg{height:5px;background:var(--border);border-radius:10px;overflow:hidden;}
+.signal-bar-fill{height:5px;border-radius:10px;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);}
+.signal-pct{font-family:var(--font-mono);font-size:12px;color:var(--muted);min-width:36px;text-align:right;}
+
+/* SIMULATE PAGE */
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;}
+.sim-controls{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;}
+.sim-output{display:flex;flex-direction:column;gap:16px;}
+.slider-group{margin-bottom:20px;}
+.slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.slider-name{font-size:13px;font-weight:500;}
+.slider-reading{font-family:var(--font-mono);font-size:13px;color:var(--accent);}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:10px;outline:none;cursor:pointer;margin-bottom:4px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;transition:transform 0.2s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3);}
+#r-hrv{background:linear-gradient(90deg,var(--border) 0%,var(--accent) 55%);}
+#r-hrv::-webkit-slider-thumb{background:var(--accent);}
+#r-sleep{background:linear-gradient(90deg,var(--border) 0%,var(--accent2) 65%);}
+#r-sleep::-webkit-slider-thumb{background:var(--accent2);}
+#r-rhr{background:linear-gradient(90deg,var(--border) 0%,var(--accent4) 40%);}
+#r-rhr::-webkit-slider-thumb{background:var(--accent4);}
+#r-steps{background:linear-gradient(90deg,var(--border) 0%,var(--accent3) 60%);}
+#r-steps::-webkit-slider-thumb{background:var(--accent3);}
+.context-hint{font-size:11px;color:var(--dim);margin-top:2px;}
+.preset-row{display:flex;gap:8px;margin-top:4px;}
+.preset-btn{flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* OUTPUT CARDS */
+.out-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;}
+.score-display{text-align:center;padding:20px 0;}
+.score-giant{font-family:var(--font-mono);font-size:64px;font-weight:500;line-height:1;transition:color 0.4s;}
+.score-label{font-size:13px;margin-top:6px;font-weight:500;transition:color 0.4s;}
+.contrib-list{margin-top:12px;}
+.contrib-item{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.contrib-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.contrib-name{font-size:12px;color:var(--muted);flex:1;}
+.contrib-bar-bg{flex:2;height:4px;background:var(--border);border-radius:10px;overflow:hidden;}
+.contrib-bar{height:4px;border-radius:10px;transition:width 0.5s;}
+.contrib-val{font-family:var(--font-mono);font-size:11px;color:var(--muted);min-width:30px;text-align:right;}
+
+/* CODE PAGE */
+.code-page{display:flex;flex-direction:column;gap:16px;}
+.code-file{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.code-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.file-dot{width:10px;height:10px;border-radius:50%;}
+.file-name{font-family:var(--font-mono);font-size:13px;color:var(--muted);}
+.file-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(124,111,255,0.15);color:var(--accent);font-weight:500;margin-left:auto;}
+pre{padding:20px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.8;color:#abb2bf;}
+.kw{color:#c678dd;} .fn{color:#61afef;} .str{color:#98c379;} .cm{color:#5c6370;font-style:italic;} .num{color:#d19a66;} .cls{color:#e5c07b;}
+
+/* ABOUT PAGE */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.about-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;}
+.about-card h3{font-family:var(--font-display);font-size:20px;margin-bottom:12px;color:var(--text);}
+.about-card p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:10px;}
+.tech-tag{display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:500;margin:3px;border:1px solid var(--border);color:var(--muted);}
+.step-list{counter-reset:steps;}
+.step-item{counter-increment:steps;display:flex;gap:12px;margin-bottom:16px;align-items:flex-start;}
+.step-num{width:28px;height:28px;border-radius:8px;background:rgba(124,111,255,0.15);border:1px solid rgba(124,111,255,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;color:var(--accent);flex-shrink:0;margin-top:2px;}
+.step-content{flex:1;}
+.step-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.step-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* ALERT BANNER */
+.alert{padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;margin-bottom:16px;border:1px solid;}
+.alert-high{background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.3);color:#ff8a8a;}
+.alert-mod{background:rgba(255,217,61,0.1);border-color:rgba(255,217,61,0.3);color:#ffd93d;}
+.alert-low{background:rgba(77,255,195,0.1);border-color:rgba(77,255,195,0.3);color:#4dffc3;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Vital<span>Mind</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="goPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="goPage('simulate')">Simulator</button>
+    <button class="nav-tab" onclick="goPage('code')">Code</button>
+    <button class="nav-tab" onclick="goPage('about')">About</button>
+  </div>
+  <div style="font-size:12px;color:var(--muted);"><span class="status-dot"></span>Live monitoring</div>
+</nav>
+
+<!-- OVERVIEW PAGE -->
+<div class="page active" id="page-overview">
+  <div id="alert-banner" class="alert alert-mod">Moderate burnout risk detected — signals trending above baseline for 4 days</div>
+
+  <div class="overview-grid">
+    <div class="metric-card hrv">
+      <div class="metric-label">Heart rate variability</div>
+      <div class="metric-val" style="color:var(--accent);">38</div>
+      <div class="metric-unit">ms — baseline 55ms</div>
+      <div class="metric-delta delta-bad">-31% below baseline</div>
+    </div>
+    <div class="metric-card sleep">
+      <div class="metric-label">Sleep last night</div>
+      <div class="metric-val" style="color:var(--accent2);">5.2</div>
+      <div class="metric-unit">hrs — baseline 7.5hrs</div>
+      <div class="metric-delta delta-bad">-31% below baseline</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Resting heart rate</div>
+      <div class="metric-val" style="color:var(--accent4);">74</div>
+      <div class="metric-unit">bpm — baseline 62bpm</div>
+      <div class="metric-delta delta-warn">+19% above baseline</div>
+    </div>
+  </div>
+
+  <div class="risk-panel">
+    <div class="risk-score-card">
+      <div class="risk-ring-wrap">
+        <canvas id="ring-canvas" width="160" height="160"></canvas>
+        <div class="risk-ring-center">
+          <div class="risk-big" id="ov-score" style="color:var(--accent4);">61</div>
+          <div class="risk-tag">/ 100</div>
+        </div>
+      </div>
+      <div class="risk-status" style="color:var(--accent4);">Moderate Risk</div>
+      <div class="risk-advice">7-day rolling average. Primary driver: HRV suppression + sleep deficit</div>
+    </div>
+
+    <div class="trend-card">
+      <div class="card-title">7-day burnout risk trend</div>
+      <div class="chart-wrap">
+        <canvas id="trend-canvas" width="600" height="140"></canvas>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:11px;color:var(--muted);">Mon</span>
+        <span style="font-size:11px;color:var(--muted);">Tue</span>
+        <span style="font-size:11px;color:var(--muted);">Wed</span>
+        <span style="font-size:11px;color:var(--muted);">Thu</span>
+        <span style="font-size:11px;color:var(--muted);">Fri</span>
+        <span style="font-size:11px;color:var(--muted);">Sat</span>
+        <span style="font-size:11px;color:var(--muted);">Today</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="signals-card">
+    <div class="card-title">Signal breakdown — what's driving the score</div>
+    <div class="signal-row">
+      <div class="signal-icon" style="background:rgba(124,111,255,0.15);">💓</div>
+      <div class="signal-info">
+        <div class="signal-name">HRV stress signal <span style="font-size:11px;color:var(--muted);font-weight:400;">(weight: 35%)</span></div>
+        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:72%;background:var(--accent);"></div></div>
+      </div>
+      <div class="signal-pct" style="color:var(--accent);">72%</div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-icon" style="background:rgba(77,255,195,0.15);">🌙</div>
+      <div class="signal-info">
+        <div class="signal-name">Sleep deficit <span style="font-size:11px;color:var(--muted);font-weight:400;">(weight: 25%)</span></div>
+        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:58%;background:var(--accent2);"></div></div>
+      </div>
+      <div class="signal-pct" style="color:var(--accent2);">58%</div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-icon" style="background:rgba(255,217,61,0.15);">❤️</div>
+      <div class="signal-info">
+        <div class="signal-name">Resting HR elevation <span style="font-size:11px;color:var(--muted);font-weight:400;">(weight: 25%)</span></div>
+        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:44%;background:var(--accent4);"></div></div>
+      </div>
+      <div class="signal-pct" style="color:var(--accent4);">44%</div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-icon" style="background:rgba(255,107,107,0.15);">👣</div>
+      <div class="signal-info">
+        <div class="signal-name">Activity drop <span style="font-size:11px;color:var(--muted);font-weight:400;">(weight: 15%)</span></div>
+        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:28%;background:var(--accent3);"></div></div>
+      </div>
+      <div class="signal-pct" style="color:var(--accent3);">28%</div>
+    </div>
+  </div>
+</div>
+
+<!-- SIMULATE PAGE -->
+<div class="page" id="page-simulate">
+  <div class="sim-layout">
+    <div class="sim-controls">
+      <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Wearable signal simulator</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">Adjust readings to see real-time burnout risk calculation</div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="slider-name">💓 HRV (Heart Rate Variability)</span>
+          <span class="slider-reading" id="v-hrv">38 ms</span>
+        </div>
+        <input type="range" id="r-hrv" min="20" max="90" value="38" step="1" oninput="simUpdate()">
+        <div class="context-hint">Baseline: 55ms — lower = more stressed</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="slider-name">🌙 Sleep duration</span>
+          <span class="slider-reading" id="v-sleep">5.2 hrs</span>
+        </div>
+        <input type="range" id="r-sleep" min="3" max="10" value="5.2" step="0.1" oninput="simUpdate()">
+        <div class="context-hint">Baseline: 7.5hrs — less sleep = higher risk</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="slider-name">❤️ Resting heart rate</span>
+          <span class="slider-reading" id="v-rhr">74 bpm</span>
+        </div>
+        <input type="range" id="r-rhr" min="50" max="100" value="74" step="1" oninput="simUpdate()">
+        <div class="context-hint">Baseline: 62bpm — higher = more strain</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="slider-name">👣 Daily steps</span>
+          <span class="slider-reading" id="v-steps">5,200</span>
+        </div>
+        <input type="range" id="r-steps" min="500" max="15000" value="5200" step="100" oninput="simUpdate()">
+        <div class="context-hint">Baseline: 8,000 steps — drop = disengagement</div>
+      </div>
+
+      <div class="preset-row">
+        <button class="preset-btn" onclick="applyPreset('burnout')">Simulate burnout</button>
+        <button class="preset-btn" onclick="applyPreset('moderate')">Moderate stress</button>
+        <button class="preset-btn" onclick="applyPreset('healthy')">Healthy state</button>
+      </div>
+    </div>
+
+    <div class="sim-output">
+      <div class="out-card">
+        <div class="card-title">Burnout risk score</div>
+        <div class="score-display">
+          <div class="score-giant" id="sim-score">61</div>
+          <div class="score-label" id="sim-label" style="color:var(--accent4);">Moderate risk</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 16px;background:var(--surface2);border-radius:10px;" id="sim-advice">
+          Watch trend over next 3 days. Recommend rest and reduced workload.
+        </div>
+      </div>
+
+      <div class="out-card">
+        <div class="card-title">Signal contributions</div>
+        <div class="contrib-list">
+          <div class="contrib-item">
+            <div class="contrib-dot" style="background:var(--accent);"></div>
+            <div class="contrib-name">HRV stress</div>
+            <div class="contrib-bar-bg"><div class="contrib-bar" id="cb-hrv" style="background:var(--accent);width:60%;"></div></div>
+            <div class="contrib-val" id="cv-hrv">60%</div>
+          </div>
+          <div class="contrib-item">
+            <div class="contrib-dot" style="background:var(--accent2);"></div>
+            <div class="contrib-name">Sleep deficit</div>
+            <div class="contrib-bar-bg"><div class="contrib-bar" id="cb-sleep" style="background:var(--accent2);width:25%;"></div></div>
+            <div class="contrib-val" id="cv-sleep">25%</div>
+          </div>
+          <div class="contrib-item">
+            <div class="contrib-dot" style="background:var(--accent4);"></div>
+            <div class="contrib-name">HR elevation</div>
+            <div class="contrib-bar-bg"><div class="contrib-bar" id="cb-rhr" style="background:var(--accent4);width:10%;"></div></div>
+            <div class="contrib-val" id="cv-rhr">10%</div>
+          </div>
+          <div class="contrib-item">
+            <div class="contrib-dot" style="background:var(--accent3);"></div>
+            <div class="contrib-name">Activity drop</div>
+            <div class="contrib-bar-bg"><div class="contrib-bar" id="cb-steps" style="background:var(--accent3);width:5%;"></div></div>
+            <div class="contrib-val" id="cv-steps">5%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CODE PAGE -->
+<div class="page" id="page-code">
+  <div class="code-page">
+    <div class="code-file">
+      <div class="code-header">
+        <div class="file-dot" style="background:#ff6b6b;"></div>
+        <div class="file-dot" style="background:#ffd93d;margin-left:4px;"></div>
+        <div class="file-dot" style="background:#4dffc3;margin-left:4px;"></div>
+        <div class="file-name" style="margin-left:12px;">biomarker_engine.py</div>
+        <div class="file-badge">Core ML</div>
+      </div>
+<pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> List, Dict
+
+<span class="cls">@dataclass</span>
+<span class="kw">class</span> <span class="cls">WearableReading</span>:
+    hrv_ms: float       <span class="cm"># Heart Rate Variability in milliseconds</span>
+    sleep_hrs: float    <span class="cm"># Sleep duration in hours</span>
+    rhr_bpm: int        <span class="cm"># Resting Heart Rate in bpm</span>
+    steps: int          <span class="cm"># Daily step count</span>
+
+<span class="kw">class</span> <span class="cls">BurnoutBiomarker</span>:
+    BASELINES = {<span class="str">"hrv"</span>: <span class="num">55</span>, <span class="str">"sleep"</span>: <span class="num">7.5</span>, <span class="str">"rhr"</span>: <span class="num">62</span>, <span class="str">"steps"</span>: <span class="num">8000</span>}
+    WEIGHTS   = {<span class="str">"hrv"</span>: <span class="num">0.35</span>, <span class="str">"sleep"</span>: <span class="num">0.25</span>, <span class="str">"rhr"</span>: <span class="num">0.25</span>, <span class="str">"steps"</span>: <span class="num">0.15</span>}
+
+    <span class="kw">def</span> <span class="fn">personalise</span>(self, user_readings: List[WearableReading]):
+        <span class="cm">"""Override population baselines with user's own 30-day avg."""</span>
+        <span class="kw">if</span> len(user_readings) >= <span class="num">30</span>:
+            self.BASELINES[<span class="str">"hrv"</span>]   = np.mean([r.hrv_ms <span class="kw">for</span> r <span class="kw">in</span> user_readings])
+            self.BASELINES[<span class="str">"sleep"</span>] = np.mean([r.sleep_hrs <span class="kw">for</span> r <span class="kw">in</span> user_readings])
+            self.BASELINES[<span class="str">"rhr"</span>]   = np.mean([r.rhr_bpm <span class="kw">for</span> r <span class="kw">in</span> user_readings])
+            self.BASELINES[<span class="str">"steps"</span>] = np.mean([r.steps <span class="kw">for</span> r <span class="kw">in</span> user_readings])
+
+    <span class="kw">def</span> <span class="fn">score_day</span>(self, r: WearableReading) -> Dict:
+        signals = {
+            <span class="str">"hrv"</span>  : (self.BASELINES[<span class="str">"hrv"</span>]   - r.hrv_ms)    / self.BASELINES[<span class="str">"hrv"</span>],
+            <span class="str">"sleep"</span>: (self.BASELINES[<span class="str">"sleep"</span>] - r.sleep_hrs) / self.BASELINES[<span class="str">"sleep"</span>],
+            <span class="str">"rhr"</span>  : (r.rhr_bpm - self.BASELINES[<span class="str">"rhr"</span>])    / self.BASELINES[<span class="str">"rhr"</span>],
+            <span class="str">"steps"</span>: (self.BASELINES[<span class="str">"steps"</span>] - r.steps)    / self.BASELINES[<span class="str">"steps"</span>],
+        }
+        raw  = <span class="fn">sum</span>(self.WEIGHTS[k] * <span class="fn">max</span>(<span class="num">0</span>, v) <span class="kw">for</span> k,v <span class="kw">in</span> signals.items())
+        risk = <span class="fn">round</span>(<span class="fn">min</span>(<span class="num">100</span>, raw * <span class="num">100</span>), <span class="num">1</span>)
+        <span class="kw">return</span> {<span class="str">"risk"</span>: risk, <span class="str">"signals"</span>: signals}
+
+    <span class="kw">def</span> <span class="fn">rolling_risk</span>(self, days: List[WearableReading]) -> float:
+        <span class="kw">return</span> <span class="fn">round</span>(np.mean([self.score_day(d)[<span class="str">"risk"</span>] <span class="kw">for</span> d <span class="kw">in</span> days[-<span class="num">7</span>:]]), <span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">interpret</span>(self, score: float) -> str:
+        <span class="kw">if</span> score >= <span class="num">70</span>: <span class="kw">return</span> <span class="str">"High — escalate to clinician"</span>
+        <span class="kw">if</span> score >= <span class="num">45</span>: <span class="kw">return</span> <span class="str">"Moderate — recommend check-in"</span>
+        <span class="kw">return</span> <span class="str">"Low — continue monitoring"</span></pre>
+    </div>
+
+    <div class="code-file">
+      <div class="code-header">
+        <div class="file-dot" style="background:#ff6b6b;"></div>
+        <div class="file-dot" style="background:#ffd93d;margin-left:4px;"></div>
+        <div class="file-dot" style="background:#4dffc3;margin-left:4px;"></div>
+        <div class="file-name" style="margin-left:12px;">data_connectors.py</div>
+        <div class="file-badge">Data Layer</div>
+      </div>
+<pre><span class="kw">import</span> fitbit, json, xml.etree.ElementTree <span class="kw">as</span> ET
+
+<span class="kw">class</span> <span class="cls">FitbitConnector</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, access_token: str):
+        self.client = fitbit.Fitbit(access_token=access_token)
+
+    <span class="kw">def</span> <span class="fn">get_today</span>(self) -> dict:
+        hrv   = self.client.intraday_time_series(<span class="str">'activities/heart'</span>, detail_level=<span class="str">'1min'</span>)
+        sleep = self.client.get_sleep(date=<span class="str">'today'</span>)
+        steps = self.client.activities()[<span class="str">'summary'</span>][<span class="str">'steps'</span>]
+        <span class="kw">return</span> {<span class="str">"hrv"</span>: hrv, <span class="str">"sleep"</span>: sleep[<span class="str">"summary"</span>][<span class="str">"totalTimeInBed"</span>]/<span class="num">60</span>, <span class="str">"steps"</span>: steps}
+
+<span class="kw">class</span> <span class="cls">AppleHealthConnector</span>:
+    <span class="kw">def</span> <span class="fn">parse_export</span>(self, xml_path: str) -> list:
+        tree = ET.parse(xml_path)
+        records = tree.getroot().findall(<span class="str">"Record"</span>)
+        hrv_records = [r <span class="kw">for</span> r <span class="kw">in</span> records
+                       <span class="kw">if</span> r.get(<span class="str">"type"</span>) == <span class="str">"HKQuantityTypeIdentifierHeartRateVariabilitySDNN"</span>]
+        <span class="kw">return</span> [{<span class="str">"value"</span>: <span class="fn">float</span>(r.get(<span class="str">"value"</span>)),
+                  <span class="str">"date"</span>: r.get(<span class="str">"startDate"</span>)} <span class="kw">for</span> r <span class="kw">in</span> hrv_records]
+
+<span class="cm"># Option 3: WESAD academic dataset (free, validated)</span>
+<span class="cm"># archive.ics.uci.edu/dataset/465/wesad</span>
+<span class="kw">def</span> <span class="fn">load_wesad</span>(subject_id: int) -> list:
+    <span class="kw">import</span> pickle
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="str">f"WESAD/S{subject_id}/S{subject_id}.pkl"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> f:
+        data = pickle.load(f, encoding=<span class="str">"latin1"</span>)
+    <span class="kw">return</span> data[<span class="str">"signal"</span>][<span class="str">"wrist"</span>]</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT PAGE -->
+<div class="page" id="page-about">
+  <div class="about-grid">
+    <div class="about-card">
+      <h3>What is VitalMind?</h3>
+      <p>VitalMind is a digital biomarker platform that detects early burnout risk using wearable signals — before a person consciously feels it.</p>
+      <p>It combines heart rate variability, sleep quality, resting heart rate and activity data into a single personalised risk score, updated daily.</p>
+      <p>Unlike population-based apps, VitalMind compares you against your own 30-day baseline — making it accurate for each individual.</p>
+      <div style="margin-top:16px;">
+        <span class="tech-tag">Python</span><span class="tech-tag">NumPy</span><span class="tech-tag">Fitbit API</span><span class="tech-tag">Apple Health</span><span class="tech-tag">WESAD dataset</span><span class="tech-tag">Flask</span><span class="tech-tag">React</span>
+      </div>
+    </div>
+
+    <div class="about-card">
+      <h3>How it works</h3>
+      <div class="step-list">
+        <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Collect wearable signals</div><div class="step-desc">HRV, sleep, resting HR, steps — pulled automatically from Fitbit or Apple Health daily.</div></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Normalize to personal baseline</div><div class="step-desc">Each signal is compared against the user's own 30-day rolling average — not population norms.</div></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Compute composite score</div><div class="step-desc">Weighted formula: HRV 35% + Sleep 25% + RHR 25% + Steps 15% → 0–100 risk score.</div></div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-content"><div class="step-title">7-day rolling window</div><div class="step-desc">Daily scores averaged over 7 days to detect sustained patterns, not just bad days.</div></div></div>
+        <div class="step-item"><div class="step-num">5</div><div class="step-content"><div class="step-title">Explainable alert</div><div class="step-desc">Every alert shows which signal is driving the score — so clinicians know exactly where to look.</div></div></div>
+      </div>
+    </div>
+
+    <div class="about-card" style="grid-column:1/-1;">
+      <h3>Why this matters</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:8px;">
+        <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:12px;">
+          <div style="font-family:var(--font-mono);font-size:28px;color:var(--accent);font-weight:500;">76%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">of workers report burnout — most undetected until crisis</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:12px;">
+          <div style="font-family:var(--font-mono);font-size:28px;color:var(--accent2);font-weight:500;">14 days</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">average early warning window wearables can provide</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:12px;">
+          <div style="font-family:var(--font-mono);font-size:28px;color:var(--accent4);font-weight:500;">$322B</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">annual global cost of burnout-related turnover</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function drawRing(canvas, score){
+  const ctx=canvas.getContext('2d');
+  const cx=80,cy=80,r=65,lw=10;
+  ctx.clearRect(0,0,160,160);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='#252830';ctx.lineWidth=lw;ctx.stroke();
+  const angle=(score/100)*Math.PI*2 - Math.PI/2;
+  const color=score>=70?'#ff6b6b':score>=45?'#ffd93d':'#4dffc3';
+  ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,angle);
+  ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke();
+}
+
+function drawTrend(canvas, data){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad=20,uw=(W-pad*2)/(data.length-1);
+  const toY=v=>H-pad-(v/100)*(H-pad*2);
+
+  ctx.beginPath();
+  ctx.moveTo(pad,toY(data[0]));
+  data.forEach((v,i)=>ctx.lineTo(pad+i*uw,toY(v)));
+  ctx.strokeStyle='#534AB7';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+
+  data.forEach((v,i)=>{
+    const x=pad+i*uw,y=toY(v);
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    const c=v>=70?'#ff6b6b':v>=45?'#ffd93d':'#4dffc3';
+    ctx.fillStyle=c;ctx.fill();
+    ctx.fillStyle='#6b7280';ctx.font='11px DM Mono,monospace';
+    ctx.textAlign='center';ctx.fillText(v,x,y-10);
+  });
+
+  const zoneY=toY(70);
+  ctx.beginPath();ctx.moveTo(pad,zoneY);ctx.lineTo(W-pad,zoneY);
+  ctx.strokeStyle='rgba(255,107,107,0.2)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+const trendData=[22,31,38,45,54,58,61];
+setTimeout(()=>{
+  const rc=document.getElementById('ring-canvas');
+  if(rc)drawRing(rc,61);
+  const tc=document.getElementById('trend-canvas');
+  if(tc)drawTrend(tc,trendData);
+},100);
+
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
+
+function simUpdate(){
+  const hrv=parseFloat(document.getElementById('r-hrv').value);
+  const sleep=parseFloat(document.getElementById('r-sleep').value);
+  const rhr=parseFloat(document.getElementById('r-rhr').value);
+  const steps=parseInt(document.getElementById('r-steps').value);
+
+  document.getElementById('v-hrv').textContent=hrv+' ms';
+  document.getElementById('v-sleep').textContent=sleep.toFixed(1)+' hrs';
+  document.getElementById('v-rhr').textContent=rhr+' bpm';
+  document.getElementById('v-steps').textContent=steps.toLocaleString();
+
+  const hs=clamp((55-hrv)/55,0,1);
+  const ss=clamp((7.5-sleep)/7.5,0,1);
+  const rs=clamp((rhr-62)/62,0,1);
+  const as=clamp((8000-steps)/8000,0,1);
+
+  const ch=hs*0.35,cs=ss*0.25,cr=rs*0.25,ca=as*0.15;
+  const tot=ch+cs+cr+ca||1;
+  const risk=Math.min(100,Math.round(tot*100));
+
+  document.getElementById('sim-score').textContent=risk;
+
+  const pct=v=>Math.round(v/tot*100)+'%';
+  document.getElementById('cb-hrv').style.width=pct(ch);document.getElementById('cv-hrv').textContent=pct(ch);
+  document.getElementById('cb-sleep').style.width=pct(cs);document.getElementById('cv-sleep').textContent=pct(cs);
+  document.getElementById('cb-rhr').style.width=pct(cr);document.getElementById('cv-rhr').textContent=pct(cr);
+  document.getElementById('cb-steps').style.width=pct(ca);document.getElementById('cv-steps').textContent=pct(ca);
+
+  const sc=document.getElementById('sim-score');
+  const sl=document.getElementById('sim-label');
+  const sa=document.getElementById('sim-advice');
+  if(risk>=70){sc.style.color='#ff6b6b';sl.style.color='#ff6b6b';sl.textContent='High burnout risk';sa.textContent='Multiple signals in danger zone. Recommend clinical escalation within 48hrs.';}
+  else if(risk>=45){sc.style.color='#ffd93d';sl.style.color='#ffd93d';sl.textContent='Moderate risk';sa.textContent='Some signals outside normal range. Watch trend over next 3 days.';}
+  else{sc.style.color='#4dffc3';sl.style.color='#4dffc3';sl.textContent='Low risk';sa.textContent='All biomarkers within healthy range. Continue current routine.';}
+}
+
+function applyPreset(t){
+  const vals={burnout:[25,4,86,1200],moderate:[38,5.2,74,5200],healthy:[65,8,58,9800]};
+  const v=vals[t];
+  document.getElementById('r-hrv').value=v[0];
+  document.getElementById('r-sleep').value=v[1];
+  document.getElementById('r-rhr').value=v[2];
+  document.getElementById('r-steps').value=v[3];
+  simUpdate();
+}
+
+simUpdate();
+</script>
+</body>
+</html>
